@@ -1,2 +1,2 @@
-# hydrator
+# Hydrator
 Simple object hydrator & extractor for PHP 7.

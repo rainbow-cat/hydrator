@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace RainbowCat\Hydrator\Test\Stub;
 
@@ -9,7 +9,7 @@ class SetterAndGetterStub extends OnlyPropertyStub
         $this->one = $one * 100;
     }
     
-    public function getOne()
+    public function getOne(): int
     {
         return $this->one * 100;
     }
@@ -19,7 +19,7 @@ class SetterAndGetterStub extends OnlyPropertyStub
         $this->two = $two * 100;
     }
     
-    public function getTwo()
+    public function getTwo(): int
     {
         return $this->two * 100;
     }

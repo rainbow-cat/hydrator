@@ -3,7 +3,7 @@
     "type": "library",
     "license": "MIT",
     "description": "Simple object hydrator & extractor for PHP 7.",
-    "keywords": ["hydrator", "hydrate"],
+    "keywords": ["hydrator", "hydrate", "extractor"],
     "require": {
         "php": "^7.0"
     },

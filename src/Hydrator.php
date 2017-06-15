@@ -16,7 +16,17 @@ class Hydrator
     /**
      * @var array
      */
-    protected $mapping = [];
+    protected $mapping;
+    
+    /**
+     * @var bool
+     */
+    protected $ignoreSetters;
+    
+    /**
+     * @var bool
+     */
+    protected $ignoreGetters;
     
     /**
      * @var array
@@ -40,9 +50,16 @@ class Hydrator
      * @param array $mapping
      * @throws ReflectionException
      */
-    public function __construct(string $className, array $mapping)
-    {
+    public function __construct(
+        string $className,
+        array $mapping,
+        bool $ignoreSetters = false,
+        bool $ignoreGetters = false
+    ) {
         $this->className = $className;
+        
+        $this->ignoreSetters = $ignoreSetters;
+        $this->ignoreGetters = $ignoreGetters;
         
         $this->fixMapping($mapping);
         $this->initialize(new ReflectionClass($className));
@@ -67,7 +84,7 @@ class Hydrator
                 } elseif (isset($this->reflectionProperties[$propertyName])) {
                     $this->reflectionProperties[$propertyName]->setValue($object, $data[$dataKey]);
                 } else {
-                    throw new InvalidArgumentException(sprintf('Class %s doesn\'t have property $%s.', $this->className, $propertyName));
+                    throw new InvalidArgumentException('Class '. $this->className .' doesn\'t have property $'. $propertyName .'.');
                 }
             }
         }
@@ -108,7 +125,7 @@ class Hydrator
     protected function validateObject($object)
     {
         if ( ! is_object($object) || $this->className !== get_class($object) ) {
-            throw new InvalidArgumentException(sprintf('Argument $object must be an instance of %s.', $this->className));
+            throw new InvalidArgumentException('Argument $object must be an instance of '. $this->className .'.');
         }
     }
     
@@ -139,31 +156,52 @@ class Hydrator
     {
         foreach ($reflectionClass->getProperties() as $reflectionProperty) {
             if ( ! $reflectionProperty->isStatic()) {
-                $propertyName = $reflectionProperty->name;
-                $ucPropertyName = ucfirst($propertyName);
+                $propertyName = $reflectionProperty->getName();
                 
                 $reflectionProperty->setAccessible(true);
                 $this->reflectionProperties[$propertyName] = $reflectionProperty;
                 
-                $propertySetterName = 'set'. $ucPropertyName;
-                $propertyGetterName = 'get'. $ucPropertyName;
+                $ucPropertyName = ucfirst($propertyName);
                 
-                if ($reflectionClass->hasMethod($propertySetterName)) {
-                    $reflectionMethod = $reflectionClass->getMethod($propertySetterName);
+                if ( ! $this->ignoreSetters) {
+                    $propertySetterName = 'set'. $ucPropertyName;
                     
-                    if ($reflectionMethod->isPublic() && ! $reflectionMethod->isAbstract() && ! $reflectionMethod->isStatic()) {
+                    if ($this->isMethodExistsAndCallable($reflectionClass, $propertySetterName)) {
                         $this->propertySetters[$propertyName] = $propertySetterName;
                     }
                 }
                 
-                if ($reflectionClass->hasMethod($propertyGetterName)) {
-                    $reflectionMethod = $reflectionClass->getMethod($propertyGetterName);
+                if ( ! $this->ignoreGetters) {
+                    $propertyGetterName = 'get'. $ucPropertyName;
                     
-                    if ($reflectionMethod->isPublic() && ! $reflectionMethod->isAbstract() && ! $reflectionMethod->isStatic()) {
+                    if ($this->isMethodExistsAndCallable($reflectionClass, $propertyGetterName)) {
                         $this->propertyGetters[$propertyName] = $propertyGetterName;
                     }
                 }
             }
         }
     }
+    
+    /**
+     * (non-phpdoc)
+     *
+     * @param ReflectionClass $reflectionClass
+     * @param string $methodName
+     * @return void
+     */
+    protected function isMethodExistsAndCallable(ReflectionClass $reflectionClass, string $methodName): bool
+    {
+        if ($reflectionClass->hasMethod($methodName)) {
+            $reflectionMethod = $reflectionClass->getMethod($methodName);
+            
+            $notAbstractOrStatic = ! $reflectionMethod->isAbstract() && ! $reflectionMethod->isStatic();
+            
+            if ($reflectionMethod->isPublic() && $notAbstractOrStatic) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
 }
